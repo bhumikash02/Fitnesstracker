@@ -26,7 +26,7 @@ An advanced Android app built with **Kotlin** and **Jetpack Compose** that helps
   - Stores dynamic height, weight, gender using Jetpack DataStore  
 
 - 📹 **Video Calling with Trainers**  
-  - Built using WebRTC and Firebase Realtime Database  
+  - Built using Agora WebRTC 
   - Peer-to-peer camera & mic streaming  
 
 - 🌙 **Modern UI**  
