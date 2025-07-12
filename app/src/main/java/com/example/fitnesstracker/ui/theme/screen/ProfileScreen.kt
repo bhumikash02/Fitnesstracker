@@ -1,5 +1,5 @@
 package com.example.fitnesstracker.ui.theme.screen
-
+import kotlin.math.roundToInt
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -13,34 +13,35 @@ import com.example.fitnesstracker.viewmodel.StepViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun ProfileScreen(viewModel: StepViewModel) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+fun ProfileScreen(
+    userProfile: UserProfile,
+    onSaveProfile: (UserProfile) -> Unit,
+    onLogout: () -> Unit,
+    isDarkTheme: Boolean,
+    onThemeToggle: () -> Unit
+) {
+    var name by remember { mutableStateOf(userProfile.name) }
+    var age by remember { mutableStateOf(userProfile.age.toString()) }
+    var height by remember { mutableStateOf(userProfile.heightCm.toString()) }
+    var weight by remember { mutableStateOf(userProfile.weightKg.toString()) }
 
-    // Load user data on screen entry
-    LaunchedEffect(Unit) {
-        viewModel.initUserPrefs(context)
-    }
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
 
-    val profile by viewModel.userProfile.collectAsState()
-
-    var weight by remember { mutableStateOf(profile.weightKg.toString()) }
-    var height by remember { mutableStateOf(profile.heightCm.toString()) }
-    var gender by remember { mutableStateOf(profile.gender) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Your Profile", style = MaterialTheme.typography.headlineSmall)
+        Text(text = "Profile", style = MaterialTheme.typography.headlineMedium)
 
         OutlinedTextField(
-            value = weight,
-            onValueChange = { weight = it },
-            label = { Text("Weight (kg)") },
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = age,
+            onValueChange = { age = it },
+            label = { Text("Age") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -52,28 +53,51 @@ fun ProfileScreen(viewModel: StepViewModel) {
         )
 
         OutlinedTextField(
-            value = gender,
-            onValueChange = { gender = it },
-            label = { Text("Gender (male/female)") },
+            value = weight,
+            onValueChange = { weight = it },
+            label = { Text("Weight (kg)") },
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "BMI: ${userProfile.bmi.roundToInt()}", style = MaterialTheme.typography.bodyLarge)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            Text("Dark Theme")
+            Switch(
+                checked = isDarkTheme,
+                onCheckedChange = { onThemeToggle() }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Button(
             onClick = {
-                coroutineScope.launch {
-                    viewModel.saveUserProfile(
-                        UserProfile(
-                            weightKg = weight.toFloatOrNull() ?: 60f,
-                            heightCm = height.toFloatOrNull() ?: 165f,
-                            gender = gender.lowercase().ifBlank { "female" }
-                        )
+                onSaveProfile(
+                    UserProfile(
+                        name = name,
+                        age = age.toIntOrNull() ?: 0,
+                        heightCm = height.toFloatOrNull() ?: 0f,
+                        weightKg = weight.toFloatOrNull() ?: 0f,
+                        gender = userProfile.gender
                     )
-                    Toast.makeText(context, "Profile saved!", Toast.LENGTH_SHORT).show()
-                }
+                )
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Save Profile")
+        }
+
+        OutlinedButton(
+            onClick = onLogout,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) {
+            Text("Logout")
         }
     }
 }

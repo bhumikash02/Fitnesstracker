@@ -36,7 +36,7 @@ android {
     }
 
     buildFeatures {
-        compose = true // ✅ Correct place
+        compose = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"
@@ -82,15 +82,17 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.0")
     implementation("androidx.compose.runtime:runtime-livedata")
 
-    // WebRTC
-    implementation(libs.google.webrtc)
 
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Chart
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
-    implementation("io.coil-kt:coil-compose:2.6.8")
+    //coil
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    //Video calling
+    implementation("io.agora.rtc:full-sdk:4.2.6")
 
     // Testing
     testImplementation(libs.junit)
@@ -100,6 +102,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
 
 
 }

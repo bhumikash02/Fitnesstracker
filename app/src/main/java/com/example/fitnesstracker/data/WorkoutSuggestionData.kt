@@ -1,26 +1,60 @@
-package com.example.fitnesstracker.data
-import com.example.fitnesstracker.model.WorkoutSuggestion
+package com.example.fitnesstracker.model
 
-val workoutSuggestions = listOf(
+data class WorkoutSuggestion1(
+    val name: String,
+    val category: String,
+    val videoUrl: String
+)
+
+val workoutSuggestion1 = listOf(
+    // Cardio
     WorkoutSuggestion(
-        name = "Push Ups",
-        duration = "5 min",
-        videoUrl = "https://www.youtube.com/watch?v=IODxDxX7oi4",
-        thumbnailUrl = "https://img.youtube.com/vi/IODxDxX7oi4/0.jpg",
-        category = "Full Body"
+        name = "Jumping Jacks",
+        category = "Cardio",
+        videoUrl = "https://www.youtube.com/watch?v=c4DAnQ6DtF8"
     ),
     WorkoutSuggestion(
-        name = "Plank",
-        duration = "3 min",
-        videoUrl = "https://www.youtube.com/watch?v=pSHjTRCQxIw",
-        thumbnailUrl = "https://img.youtube.com/vi/pSHjTRCQxIw/0.jpg",
-        category = "Abs"
+        name = "High Knees",
+        category = "Cardio",
+        videoUrl = "https://www.youtube.com/watch?v=OAJ_J3EZkdY"
+    ),
+    WorkoutSuggestion(
+        name = "Mountain Climbers",
+        category = "Cardio",
+        videoUrl = "https://www.youtube.com/watch?v=nmwgirgXLYM"
+    ),
+
+    // Strength
+    WorkoutSuggestion(
+        name = "Push Ups",
+        category = "Strength",
+        videoUrl = "https://www.youtube.com/watch?v=_l3ySVKYVJ8"
     ),
     WorkoutSuggestion(
         name = "Squats",
-        duration = "6 min",
-        videoUrl = "https://www.youtube.com/watch?v=aclHkVaku9U",
-        thumbnailUrl = "https://img.youtube.com/vi/aclHkVaku9U/0.jpg",
-        category = "Legs"
+        category = "Strength",
+        videoUrl = "https://www.youtube.com/watch?v=aclHkVaku9U"
+    ),
+    WorkoutSuggestion(
+        name = "Lunges",
+        category = "Strength",
+        videoUrl = "https://www.youtube.com/watch?v=QOVaHwm-Q6U"
+    ),
+
+    // Yoga
+    WorkoutSuggestion(
+        name = "Sun Salutation",
+        category = "Yoga",
+        videoUrl = "https://www.youtube.com/watch?v=6IUyY9Dyr5w"
+    ),
+    WorkoutSuggestion(
+        name = "Child’s Pose",
+        category = "Yoga",
+        videoUrl = "https://www.youtube.com/watch?v=U4s4mEQ5VqU"
+    ),
+    WorkoutSuggestion(
+        name = "Downward Dog",
+        category = "Yoga",
+        videoUrl = "https://www.youtube.com/watch?v=1VkoG1UjL8k"
     )
 )

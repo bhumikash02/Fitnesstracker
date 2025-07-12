@@ -1,79 +1,80 @@
 package com.example.fitnesstracker.ui.theme.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.fitnesstracker.ui.theme.FitnesstrackerTheme
+import com.example.fitnesstracker.R
 
 @Composable
 fun HomeScreen(
+    onStepsClick: () -> Unit,
     onWorkoutClick: () -> Unit,
-    onBmiClick: () -> Unit,
-    onStepsClick: () -> Unit
+    onBmiClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        Text(
-            text = "Welcome to FitTrack!",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        Text("Welcome to FitLife ", style = MaterialTheme.typography.headlineMedium)
 
         DashboardCard(
-            title = "Step Counter",
-            description = "Track your daily steps 👟",
+            icon = R.drawable.ic_steps,
+            title = "Step Tracker",
+            description = "View your daily and weekly steps",
             onClick = onStepsClick
         )
 
         DashboardCard(
+            icon = R.drawable.ic_workout,
             title = "Workout Logs",
-            description = "Log your exercises 💪",
+            description = "Log and view your workouts",
             onClick = onWorkoutClick
         )
 
         DashboardCard(
+            icon = R.drawable.ic_bmi,
             title = "BMI Calculator",
-            description = "Check your health stats ⚖️",
+            description = "Check your Body Mass Index",
             onClick = onBmiClick
         )
     }
 }
 
 @Composable
-fun DashboardCard(title: String, description: String, onClick: () -> Unit) {
+fun DashboardCard(
+    icon: Int,
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = description, fontSize = 14.sp)
+            Image(
+                painter = painterResource(id = icon),
+                contentDescription = title,
+                modifier = Modifier.size(48.dp)
+            )
+            Column {
+                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(description, fontSize = 14.sp)
+            }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    FitnesstrackerTheme {
-        HomeScreen({}, {}, {})
     }
 }

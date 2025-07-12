@@ -18,6 +18,6 @@ interface WorkoutDao {
 
 
     @Query("SELECT * FROM workouts ORDER BY timestamp DESC")
-    fun getAllWorkouts(): Flow<List<WorkoutEntity>> // ✅ returns Flow for Compose compatibility
+    fun getAllWorkouts(): Flow<List<WorkoutEntity>> // returns Flow for Compose compatibility
 }
 

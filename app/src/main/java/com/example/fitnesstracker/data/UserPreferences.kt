@@ -1,5 +1,4 @@
 package com.example.fitnesstracker.data
-
 import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
@@ -8,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import androidx.datastore.preferences.core.Preferences
 
-// ✅ Extension property on Context for DataStore
+// Extension property on Context for DataStore
 val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
 class UserPreferences(private val context: Context) {
@@ -19,7 +18,7 @@ class UserPreferences(private val context: Context) {
         val GENDER = stringPreferencesKey("gender")
     }
 
-    // ✅ Save user profile data to DataStore
+    // Save user profile data to DataStore
     suspend fun saveUserProfile(profile: UserProfile) {
         context.dataStore.edit { prefs ->
             prefs[WEIGHT] = profile.weightKg
@@ -28,7 +27,7 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    // ✅ Retrieve user profile from DataStore
+    // Retrieve user profile from DataStore
     fun getUserProfile(): Flow<UserProfile> {
         return context.dataStore.data.map { prefs: Preferences ->
             UserProfile(
