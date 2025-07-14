@@ -7,7 +7,7 @@ An advanced Android app built with **Kotlin** and **Jetpack Compose** that helps
 
 - 📈 **Step Tracking**  
   - Real-time tracking with SensorManager  
-  - Historical sync via Google Fit API  
+  - Historical sync via Health Connect API  
   - Calorie estimation & step goal progress  
 
 - 🧠 **BMI Calculator**  
