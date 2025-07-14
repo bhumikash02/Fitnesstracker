@@ -6,7 +6,7 @@ An advanced Android app built with **Kotlin** and **Jetpack Compose** that helps
 ## 🚀 Features
 
 - 📈 **Step Tracking**  
-  - Real-time tracking with SensorManager  
+  - Real time tracking with SensorManager  
   - Historical sync via Health Connect API  
   - Calorie estimation & step goal progress  
 
@@ -26,7 +26,7 @@ An advanced Android app built with **Kotlin** and **Jetpack Compose** that helps
   - Stores dynamic height, weight, gender using Jetpack DataStore  
 
 - 📹 **Video Calling with Trainers**  
-  - Built using Agora WebRTC 
+  - Built using Agora RTC SDK 
   - Peer-to-peer camera & mic streaming  
 
 - 🌙 **Modern UI**  
@@ -38,9 +38,8 @@ An advanced Android app built with **Kotlin** and **Jetpack Compose** that helps
 
 - **Language:** Kotlin  
 - **UI:** Jetpack Compose  
-- **Data:** Room DB, Jetpack DataStore, Firebase  
-- **APIs:** Google Fit API, WebRTC  
-- **Charts:** MPAndroidChart  
+- **Data:** Room DB, Jetpack DataStore, Firebase Auth 
+- **APIs:** Health Connect API, Agora RTC SDK  
 - **Architecture:** MVVM + Clean Architecture  
 
 ## 🔐 Permissions Required
@@ -49,6 +48,12 @@ An advanced Android app built with **Kotlin** and **Jetpack Compose** that helps
 - `CAMERA`  
 - `INTERNET`  
 - `RECORD_AUDIO`
+- `MODIFY_AUDIO_SETTINGS`
+- `ACCESS_NETWORK_STATE`
+- `BLUETOOTH`
+- `INTERNET`
+- `android.permission.health.READ_STEPS`
+- `android.permission.health.WRITE_STEPS`
 
 ## 🔧 Setup Instructions
 
