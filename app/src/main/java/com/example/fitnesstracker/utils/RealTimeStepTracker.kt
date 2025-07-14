@@ -5,38 +5,55 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 
+// Ensure this is an 'object' so it's a singleton
 object RealTimeStepTracker : SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
-    private var initialSteps = -1
 
-    private val _steps = MutableLiveData(0)
-    val steps: LiveData<Int> = _steps
+    // This is the variable we are trying to access
+    private val _totalSteps = MutableLiveData(0)
+    val totalSteps: LiveData<Int> = _totalSteps // Expose it as a public, unmodifiable LiveData
 
     fun startTracking(context: Context) {
+        Log.d("StepDebug", "Attempting to start RealTimeStepTracker...")
         sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
-        stepSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        if (stepSensor == null) {
+            Log.e("StepDebug", "FATAL: No step counter sensor (TYPE_STEP_COUNTER) found on this device.")
+            return
+        }
+
+        val success = sensorManager.registerListener(this, stepSensor, SensorManager.SENSOR_DELAY_UI)
+        if (success) {
+            Log.d("StepDebug", "SUCCESS: Sensor listener registered successfully for TYPE_STEP_COUNTER.")
+        } else {
+            Log.e("StepDebug", "FAILURE: Sensor listener registration failed.")
         }
     }
 
     fun stopTracking() {
-        sensorManager.unregisterListener(this)
+        if (::sensorManager.isInitialized) {
+            sensorManager.unregisterListener(this)
+        }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type == Sensor.TYPE_STEP_COUNTER) {
-            val totalSteps = event.values[0].toInt()
-            if (initialSteps == -1) initialSteps = totalSteps
-            _steps.value = totalSteps - initialSteps
+            val count = event.values[0].toInt()
+            if (_totalSteps.value != count) {
+                Log.d("StepDebug", "SENSOR FIRED: New total steps from hardware: $count")
+                _totalSteps.value = count
+            }
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        // Not needed for this implementation
+    }
 }

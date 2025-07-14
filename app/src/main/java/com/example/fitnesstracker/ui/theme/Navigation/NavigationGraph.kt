@@ -27,11 +27,13 @@ fun NavigationGraph(
             })
         }
 
+        // ⭐️ THIS IS THE CORRECTED BLOCK ⭐️
         composable(Routes.HOME) {
+            // We now pass the view models and the navController directly
             HomeScreen(
-                onWorkoutClick = { navController.navigate(Routes.WORKOUT) },
-                onBmiClick = { navController.navigate(Routes.BMI) },
-                onStepsClick = { navController.navigate(Routes.STEP_COUNTER) }
+                navController = navController,
+                stepViewModel = stepViewModel,
+                workoutViewModel = workoutViewModel
             )
         }
 
@@ -55,29 +57,24 @@ fun NavigationGraph(
             StepCounterScreen(viewModel = stepViewModel)
         }
 
-        // THIS IS THE NEW BLOCK YOU ARE ADDING
         composable(Routes.PROFILE) {
-            // Get the user profile state from the ViewModel
             val userProfile by stepViewModel.userProfile.collectAsState()
             val coroutineScope = rememberCoroutineScope()
 
             ProfileScreen(
                 userProfile = userProfile,
                 onSaveProfile = { updatedProfile ->
-                    // When the save button is clicked, tell the ViewModel to save the data
                     coroutineScope.launch {
                         stepViewModel.saveUserProfile(updatedProfile)
                     }
                 },
                 onLogout = {
-                    // When logout is clicked, navigate to the login screen and clear all previous screens
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(navController.graph.id) {
                             inclusive = true
                         }
                     }
                 },
-                // Placeholders for dark theme switch. You can implement these later.
                 isDarkTheme = false,
                 onThemeToggle = { }
             )

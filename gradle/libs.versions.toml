@@ -1,6 +1,7 @@
 [versions]
 agp = "8.2.2"
 googleWebrtc = "1.0.33609"
+healthConnectClient = "1.2.0-alpha04"
 kotlin = "1.9.22"
 coreKtx = "1.12.0"
 junit = "4.13.2"
@@ -16,6 +17,7 @@ hilt-navigation-compose = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-health-connect-client = { module = "androidx.health.connect:health-connect-client", version.ref = "healthConnectClient" }
 google-webrtc = { module = "org.webrtc:google-webrtc", version.ref = "googleWebrtc" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

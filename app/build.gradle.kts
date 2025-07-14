@@ -73,6 +73,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-fitness:21.1.0")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
+
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -103,6 +104,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-
+    // Health Connect
+    implementation ("androidx.health.connect:connect-client:1.1.0-alpha07")
+    implementation("androidx.compose.material:material-icons-extended")
 
 }

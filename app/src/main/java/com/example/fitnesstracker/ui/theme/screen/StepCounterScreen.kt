@@ -1,149 +1,180 @@
 package com.example.fitnesstracker.ui.theme.screen
 
-import android.Manifest
-import android.app.Activity
-import android.content.pm.PackageManager
-import android.os.Build
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.livedata.observeAsState
-import com.example.fitnesstracker.utils.GoogleFitManager
+import com.example.fitnesstracker.ui.components.CircularStepCounter
+import com.example.fitnesstracker.ui.components.WeeklyStepChart
 import com.example.fitnesstracker.utils.RealTimeStepTracker
 import com.example.fitnesstracker.viewmodel.StepViewModel
-import com.example.fitnesstracker.ui.theme.chart.StepBarChart
+
+// Sealed class to represent the different states of our UI for this screen.
+private sealed class StepCounterUiState {
+    object Loading : StepCounterUiState()
+    object NotAvailable : StepCounterUiState()
+    object PermissionRequired : StepCounterUiState()
+    object Granted : StepCounterUiState()
+}
 
 @Composable
 fun StepCounterScreen(viewModel: StepViewModel = viewModel()) {
     val context = LocalContext.current
-    val activity = context as Activity
 
-    // Step States
+    // Collect data states from ViewModel
     val todaySteps by viewModel.todaySteps.collectAsState()
     val weeklySteps by viewModel.weeklySteps.collectAsState()
-    val calories by viewModel.estimatedCalories.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     val goal = viewModel.stepGoal
 
-    // Sensor Tracking
-    val sensorSteps = RealTimeStepTracker.steps.observeAsState(0).value
+    // --- START OF CORRECTED LOGIC ---
+    var uiState by remember { mutableStateOf<StepCounterUiState>(StepCounterUiState.Loading) }
+    val healthConnectManager = remember { viewModel.getOrCreateHealthConnectManager(context) }
 
-    // Animations
-    val animatedSteps by animateIntAsState(targetValue = todaySteps, label = "stepAnim")
-    val progress = animatedSteps.coerceAtMost(goal).toFloat() / goal
-    val animatedProgress by animateFloatAsState(targetValue = progress, label = "progressAnim")
-
-    // Request Activity Recognition Permission
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            if (isGranted) {
-                Toast.makeText(context, "Permission Granted ✅", Toast.LENGTH_SHORT).show()
+    // Launcher for Health Connect's permission dialog
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = healthConnectManager.requestPermissionsActivityContract(),
+        onResult = { grantedPermissions ->
+            if (grantedPermissions.isNotEmpty()) {
+                uiState = StepCounterUiState.Granted
+                viewModel.loadStepsFromHealthConnect()
             } else {
-                Toast.makeText(context, "Permission Denied ❌", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Permissions are required to see step history.", Toast.LENGTH_LONG).show()
+                uiState = StepCounterUiState.PermissionRequired
             }
         }
     )
 
-    // LaunchedEffect for Initialization
-    LaunchedEffect(Unit) {
-        // Step 1: Check Permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+    // This effect runs once to check permissions and set the initial UI state
+    LaunchedEffect(key1 = true) {
+        viewModel.initUserPrefs(context)
+        if (healthConnectManager.isApiAvailable()) {
+            val hasPerms = healthConnectManager.hasAllPermissions()
+            if (hasPerms) {
+                uiState = StepCounterUiState.Granted
+                viewModel.loadStepsFromHealthConnect()
+            } else {
+                uiState = StepCounterUiState.PermissionRequired
+            }
+        } else {
+            uiState = StepCounterUiState.NotAvailable
+        }
+    }
+    // --- END OF CORRECTED LOGIC ---
+
+
+    // This effect listens for live sensor data
+    val totalSensorSteps by RealTimeStepTracker.totalSteps.observeAsState(0)
+    LaunchedEffect(totalSensorSteps) {
+        if (totalSensorSteps > 0) {
+            viewModel.onSensorStepsChanged(totalSensorSteps)
+        }
+    }
+
+    // Main UI rendering based on the current state
+    when (uiState) {
+        is StepCounterUiState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
         }
+        is StepCounterUiState.NotAvailable -> {
+            HealthConnectNotAvailableScreen()
+        }
+        is StepCounterUiState.PermissionRequired -> {
+            RequestPermissionsScreen {
+                requestPermissionLauncher.launch(healthConnectManager.permissions)
+            }
+        }
+        is StepCounterUiState.Granted -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Step Tracker", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(32.dp))
 
-        // Step 2: Start RealTime Step Tracking
-        RealTimeStepTracker.startTracking(context)
+                CircularStepCounter(steps = todaySteps, goal = goal)
 
-        // Step 3: Initialize User Preferences
-        viewModel.initUserPrefs(context)
+                Spacer(modifier = Modifier.height(32.dp))
 
-        // Step 4: Request Google Fit Permissions + Fetch Steps
-        GoogleFitManager.checkPermissions(context, activity) { account ->
-            viewModel.loadSteps(context, account)
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    WeeklyStepChart(weeklySteps = weeklySteps, goal = goal)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(onClick = { viewModel.loadStepsFromHealthConnect() }) {
+                    Text("Refresh Data")
+                }
+            }
         }
     }
+}
 
-    // Toast 🎉 if Goal Achieved
-    LaunchedEffect(animatedSteps) {
-        if (animatedSteps >= goal) {
-            Toast.makeText(context, "🎉 Goal Achieved! Great job!", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    // UI
+// NOTE: These helper composables are now defined in StepCounterScreen.kt
+// and can be made public if another screen needs them, but for now, they are fine here.
+@Composable
+fun HealthConnectNotAvailableScreen() {
+    val context = LocalContext.current
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Top,
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Step Tracker", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 🟦 Circular Progress Indicator
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(180.dp)) {
-            Canvas(modifier = Modifier.size(160.dp)) {
-                drawArc(
-                    color = Color.LightGray,
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    style = Stroke(width = 20f, cap = StrokeCap.Round)
-                )
-                drawArc(
-                    color = Color(0xFF4CAF50),
-                    startAngle = -90f,
-                    sweepAngle = animatedProgress * 360f,
-                    useCenter = false,
-                    style = Stroke(width = 20f, cap = StrokeCap.Round)
-                )
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("$animatedSteps", fontSize = 32.sp, fontWeight = FontWeight.Bold)
-                Text("of $goal steps", fontSize = 16.sp, color = Color.Gray)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Calories Burned: ${"%.1f".format(calories)} kcal", fontSize = 16.sp)
-        Text("Sensor Steps (Real-Time): $sensorSteps", fontSize = 14.sp, color = Color.Gray)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 📊 Weekly Trends Chart
-        Text("Weekly Trends", fontWeight = FontWeight.SemiBold)
-        StepBarChart(weeklySteps = weeklySteps)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
+        Text("Health Connect Not Available", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        Text(
+            "To use this feature, please install the Health Connect app from the Play Store.",
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(16.dp)
+        )
         Button(onClick = {
-            GoogleFitManager.checkPermissions(context, activity) { account ->
-                viewModel.loadSteps(context, account)
-            }
+            val playStoreIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.apps.healthdata"))
+            context.startActivity(playStoreIntent)
         }) {
-            Text("Refresh Data")
+            Text("Go to Play Store")
+        }
+    }
+}
+
+@Composable
+fun RequestPermissionsScreen(onGrantClick: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Permissions Required", style = MaterialTheme.typography.titleLarge)
+        Text("This app needs permission to access your step data from Health Connect.", textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
+        Button(onClick = onGrantClick) {
+            Text("Grant Permissions")
         }
     }
 }
