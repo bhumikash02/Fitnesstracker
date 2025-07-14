@@ -7,9 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-// ⭐️ FIX: Import the function itself
 import androidx.activity.compose.rememberLauncherForActivityResult
-// ⭐️ FIX: Import the contract for requesting permissions
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -38,7 +36,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val database = AppModule.provideDatabase(applicationContext)
-        val repository = WorkoutRepository(database.workoutDao())
+        val repository = WorkoutRepository(database.workoutDao(), database.stepDao())
+
 
         setContent {
             FitnesstrackerTheme {

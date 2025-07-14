@@ -9,6 +9,10 @@ object AppModule {
             context,
             FitnessDatabase::class.java,
             "fitness_database"
-        ).build()
+        )
+            // Add this line to handle the version change.
+            // This will clear all existing data in the app.
+            .fallbackToDestructiveMigration()
+            .build()
     }
 }

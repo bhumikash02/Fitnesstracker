@@ -19,7 +19,7 @@ import com.example.fitnesstracker.model.StepData
 @Composable
 fun WeeklyStepChart(
     weeklySteps: List<StepData>,
-    goal: Int,
+    goal: Int, // The goal will now be our fixed maximum scale
     modifier: Modifier = Modifier
 ) {
     Log.d("ChartDebug", "WeeklyStepChart received data: $weeklySteps")
@@ -43,10 +43,13 @@ fun WeeklyStepChart(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.Bottom
         ) {
-            val maxSteps = weeklySteps.maxOfOrNull { it.steps }?.coerceAtLeast(goal) ?: goal
+            // ⭐️ FIX: The maximum value for the chart is now always the goal.
+            val maxSteps = goal
 
+            // We still check if maxSteps > 0 to prevent division by zero.
             if (maxSteps > 0 && weeklySteps.isNotEmpty()) {
                 weeklySteps.forEach { stepData ->
+                    // Calculate the bar's height relative to the fixed goal.
                     val progress = stepData.steps.toFloat() / maxSteps.toFloat()
 
                     Column(
@@ -57,9 +60,10 @@ fun WeeklyStepChart(
                         Box(
                             modifier = Modifier
                                 .width(28.dp)
-                                .fillMaxHeight(progress)
+                                .fillMaxHeight(progress) // Use the calculated progress
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
+                                    // Bar color changes if the goal is met
                                     if (stepData.steps >= goal) Color(0xFFC05EDA) else Color(0xFF730C88)
                                 )
                         )

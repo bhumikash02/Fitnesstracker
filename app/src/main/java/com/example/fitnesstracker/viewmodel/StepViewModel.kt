@@ -1,15 +1,18 @@
 package com.example.fitnesstracker.viewmodel
+
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.fitnesstracker.data.UserPreferences
 import com.example.fitnesstracker.data.WorkoutRepository
 import com.example.fitnesstracker.model.StepData
+import com.example.fitnesstracker.model.StepEntity
 import com.example.fitnesstracker.model.UserProfile
-import com.example.fitnesstracker.utils.HealthConnectManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.Calendar
 
 class StepViewModel(
     private val repository: WorkoutRepository
@@ -21,91 +24,78 @@ class StepViewModel(
     private val _weeklySteps = MutableStateFlow<List<StepData>>(emptyList())
     val weeklySteps: StateFlow<List<StepData>> = _weeklySteps
 
-    private val _estimatedCalories = MutableStateFlow(0f)
-    val estimatedCalories: StateFlow<Float> = _estimatedCalories
-
     private val _userProfile = MutableStateFlow(UserProfile())
     val userProfile: StateFlow<UserProfile> = _userProfile
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    val stepGoal = 500 // The fixed goal for our chart
 
-    val stepGoal = 10000
-
-    private var healthConnectManager: HealthConnectManager? = null
     private lateinit var preferences: UserPreferences
+    private var initialStepsFromSensor = -1
 
-    private var initialStepsFromHealthConnect = 0
-    private var initialStepsFromSensor = -1 // -1 means sensor baseline is not yet set
+    init {
+        viewModelScope.launch {
+            repository.getWeeklyStepData().collect { stepEntities ->
+                // When the database changes, transform the data and update the UI state.
+                _weeklySteps.value = generate7DayChartData(stepEntities)
+            }
+        }
+    }
 
     fun initUserPrefs(context: Context) {
         preferences = UserPreferences(context)
         viewModelScope.launch {
             preferences.getUserProfile().collect { profile ->
                 _userProfile.value = profile
-                recalculateCalories()
             }
         }
     }
 
-    fun getOrCreateHealthConnectManager(context: Context): HealthConnectManager {
-        if (healthConnectManager == null) {
-            healthConnectManager = HealthConnectManager(context)
+    fun onSensorStepsChanged(totalSensorSteps: Int) {
+        if (initialStepsFromSensor == -1) {
+            initialStepsFromSensor = totalSensorSteps
         }
-        return healthConnectManager!!
+        val stepsTakenThisSession = totalSensorSteps - initialStepsFromSensor
+        _todaySteps.value = stepsTakenThisSession
+
+        viewModelScope.launch {
+            repository.updateTodaySteps(stepsTakenThisSession)
+        }
+    }
+
+    // ⭐️ FIX: This is the new, more robust function to build the chart data.
+    /**
+     * Generates a complete 7-day list for the weekly chart, ensuring all days of the
+     * week are present, filling in 0 for days without data.
+     */
+    private fun generate7DayChartData(entities: List<StepEntity>): List<StepData> {
+        val calendar = Calendar.getInstance()
+        val dayFormat = SimpleDateFormat("EEE", Locale.getDefault()) // "Mon", "Tue", etc.
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+        // Create a lookup map from the database entities for fast access (Date -> Steps)
+        val stepsByDate = entities.associateBy({ it.date }, { it.steps })
+
+        val chartData = mutableListOf<StepData>()
+
+        // Start from 6 days ago to today to build a 7-day list.
+        for (i in 6 downTo 0) {
+            calendar.time = Date() // Reset to today
+            calendar.add(Calendar.DAY_OF_YEAR, -i) // Go back i days
+            val date = calendar.time
+
+            val dateString = dateFormat.format(date)
+            val dayAbbreviation = dayFormat.format(date)
+
+            // Get steps from our map, or default to 0 if no entry exists for that date.
+            val steps = stepsByDate[dateString] ?: 0
+
+            chartData.add(StepData(day = dayAbbreviation, steps = steps))
+        }
+
+        return chartData
     }
 
     suspend fun saveUserProfile(profile: UserProfile) {
         preferences.saveUserProfile(profile)
-        _userProfile.value = profile
-        recalculateCalories()
-    }
-
-    fun loadStepsFromHealthConnect() {
-        healthConnectManager?.let { manager ->
-            _isLoading.value = true
-            viewModelScope.launch {
-                // Read today's steps from Health Connect to set a baseline
-                initialStepsFromHealthConnect = manager.readTodayStepCount()
-                _todaySteps.value = initialStepsFromHealthConnect
-
-                // Also load the weekly chart data
-                _weeklySteps.value = manager.readWeeklySteps()
-                recalculateCalories()
-                _isLoading.value = false
-            }
-        }
-    }
-
-    // ⭐️ --- START OF THE FIX --- ⭐️
-    fun onSensorStepsChanged(totalSensorSteps: Int) {
-        // Log to confirm the ViewModel is receiving the event
-        Log.d("StepDebug", "VIEWMODEL UPDATE: Received sensor total: $totalSensorSteps")
-
-        // If this is the first sensor event we've received, record the value
-        // as our starting point for this session.
-        if (initialStepsFromSensor == -1) {
-            initialStepsFromSensor = totalSensorSteps
-        }
-
-        // Calculate how many steps have been taken since the app started listening
-        val stepsTakenThisSession = totalSensorSteps - initialStepsFromSensor
-
-        // The new total is the historical data from Health Connect plus the new steps from this session.
-        // We use maxOf to prevent the count from going down if the sensor resets or Health Connect syncs.
-        val newTotal = maxOf(initialStepsFromHealthConnect, initialStepsFromHealthConnect + stepsTakenThisSession)
-
-        _todaySteps.value = newTotal
-        recalculateCalories()
-    }
-    // ⭐️ --- END OF THE FIX --- ⭐️
-
-    private fun recalculateCalories() {
-        val steps = _todaySteps.value
-        val profile = _userProfile.value
-        val stepsPerKm = 1300f
-        val distanceKm = steps / stepsPerKm
-        val genderFactor = if (profile.gender.lowercase() == "male") 0.75f else 0.57f
-        _estimatedCalories.value = profile.weightKg * distanceKm * genderFactor
     }
 }

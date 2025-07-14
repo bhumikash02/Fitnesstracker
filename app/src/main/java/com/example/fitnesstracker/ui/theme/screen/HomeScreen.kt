@@ -19,11 +19,9 @@ import com.example.fitnesstracker.ui.components.CircularStepCounter
 import com.example.fitnesstracker.ui.components.WeeklyStepChart
 import com.example.fitnesstracker.ui.components.WorkoutLogCard
 import com.example.fitnesstracker.ui.theme.Navigation.Routes
-import com.example.fitnesstracker.utils.HealthConnectManager
 import com.example.fitnesstracker.utils.RealTimeStepTracker
 import com.example.fitnesstracker.viewmodel.StepViewModel
 import com.example.fitnesstracker.viewmodel.WorkoutViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -38,23 +36,14 @@ fun HomeScreen(
     val stepGoal = stepViewModel.stepGoal
     val recentWorkouts by workoutViewModel.allWorkouts.collectAsState()
 
-    // ⭐️ --- START OF THE FIX --- ⭐️
+    // ⭐️ FIX: The Health Connect logic is removed from here.
+    // We only need to initialize the user preferences.
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
-    // This effect runs once when the HomeScreen is first displayed.
-    // It tries to load historical data from Health Connect.
     LaunchedEffect(Unit) {
         stepViewModel.initUserPrefs(context)
-        val healthConnectManager = stepViewModel.getOrCreateHealthConnectManager(context)
-        // Check for permissions before trying to read data
-        if (healthConnectManager.hasAllPermissions()) {
-            stepViewModel.loadStepsFromHealthConnect()
-        }
     }
-    // ⭐️ --- END OF THE FIX --- ⭐️
 
-    // Observe live sensor data
+    // This part is still correct: it observes the live sensor data.
     val totalSensorSteps by RealTimeStepTracker.totalSteps.observeAsState(0)
     LaunchedEffect(totalSensorSteps) {
         if (totalSensorSteps > 0) {
