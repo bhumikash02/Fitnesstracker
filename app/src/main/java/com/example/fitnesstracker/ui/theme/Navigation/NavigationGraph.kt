@@ -10,6 +10,9 @@ import androidx.navigation.compose.composable
 import com.example.fitnesstracker.ui.theme.screen.*
 import com.example.fitnesstracker.viewmodel.StepViewModel
 import com.example.fitnesstracker.viewmodel.WorkoutViewModel
+import com.example.fitnesstracker.viewmodel.StopwatchViewModelFactory
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.fitnesstracker.viewmodel.StopwatchViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -81,7 +84,8 @@ fun NavigationGraph(
         }
 
         composable(Routes.STOPWATCH) {
-            StopwatchScreen()
+            val stopwatchViewModel: StopwatchViewModel = viewModel(factory = StopwatchViewModelFactory())
+            StopwatchScreen(viewModel = stopwatchViewModel)
         }
 
         composable(Routes.VIDEO_CALL) {
