@@ -21,10 +21,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.fitnesstracker.data.AppModule
 import com.example.fitnesstracker.data.WorkoutRepository
-import com.example.fitnesstracker.utils.RealTimeStepTracker
 import com.example.fitnesstracker.ui.theme.FitnesstrackerTheme
 import com.example.fitnesstracker.ui.theme.Navigation.BottomNavItem
 import com.example.fitnesstracker.ui.theme.Navigation.NavigationGraph
+import com.example.fitnesstracker.utils.RealTimeStepTracker
 import com.example.fitnesstracker.viewmodel.StepViewModel
 import com.example.fitnesstracker.viewmodel.StepViewModelFactory
 import com.example.fitnesstracker.viewmodel.WorkoutViewModel
@@ -38,21 +38,32 @@ class MainActivity : ComponentActivity() {
         val database = AppModule.provideDatabase(applicationContext)
         val repository = WorkoutRepository(database.workoutDao(), database.stepDao())
 
-
         setContent {
-            FitnesstrackerTheme {
-                // --- PERMISSION HANDLING ---
-                val context = LocalContext.current
+            // Get the StepViewModel once at the top level so its state can be shared.
+            val stepViewModel: StepViewModel = viewModel(factory = StepViewModelFactory(repository))
+
+            // Initialize user preferences as soon as the app starts.
+            val context = LocalContext.current
+            LaunchedEffect(Unit) {
+                stepViewModel.initUserPrefs(context)
+            }
+
+            // Collect the theme state here to control the entire app's theme.
+            val isDarkTheme by stepViewModel.isDarkTheme.collectAsState()
+
+            // ⭐️ FIX: The entire UI is now wrapped in FitnesstrackerTheme, which dynamically
+            // receives the darkTheme parameter from our ViewModel's state.
+            FitnesstrackerTheme(darkTheme = isDarkTheme) {
+
+                // --- PERMISSION HANDLING (Remains the same) ---
                 var hasPermission by remember {
                     mutableStateOf(
                         ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
                     )
                 }
-
-                // This is the launcher that handles the permission request
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission(),
-                    onResult = { isGranted: Boolean -> // Explicitly typed for clarity
+                    onResult = { isGranted ->
                         if (isGranted) {
                             hasPermission = true
                             RealTimeStepTracker.startTracking(applicationContext)
@@ -61,8 +72,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 )
-
-                // This effect runs once to check and request permission
                 LaunchedEffect(Unit) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         if (!hasPermission) {
@@ -79,14 +88,7 @@ class MainActivity : ComponentActivity() {
                 // --- UI and Navigation ---
                 val navController = rememberNavController()
                 val workoutViewModel: WorkoutViewModel = viewModel(factory = WorkoutViewModelFactory(repository))
-                val stepViewModel: StepViewModel = viewModel(factory = StepViewModelFactory(repository))
-
-                val items = listOf(
-                    BottomNavItem.Home,
-                    BottomNavItem.Stopwatch,
-                    BottomNavItem.VideoCall,
-                    BottomNavItem.Profile
-                )
+                val items = listOf(BottomNavItem.Home, BottomNavItem.Stopwatch, BottomNavItem.VideoCall, BottomNavItem.Profile)
 
                 Scaffold(
                     bottomBar = {
@@ -110,10 +112,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { padding ->
-                    Surface(
-                        modifier = Modifier.fillMaxSize().padding(padding),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
+                    Surface(modifier = Modifier.fillMaxSize().padding(padding)) {
+                        // Pass the already-created ViewModel instances to the NavGraph.
                         NavigationGraph(
                             navController = navController,
                             workoutViewModel = workoutViewModel,

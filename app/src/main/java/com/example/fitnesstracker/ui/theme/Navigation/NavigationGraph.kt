@@ -30,9 +30,8 @@ fun NavigationGraph(
             })
         }
 
-        // ⭐️ THIS IS THE CORRECTED BLOCK ⭐️
         composable(Routes.HOME) {
-            // We now pass the view models and the navController directly
+
             HomeScreen(
                 navController = navController,
                 stepViewModel = stepViewModel,
@@ -62,10 +61,15 @@ fun NavigationGraph(
 
         composable(Routes.PROFILE) {
             val userProfile by stepViewModel.userProfile.collectAsState()
+            val isDarkTheme by stepViewModel.isDarkTheme.collectAsState()
+            val profileImageUri by stepViewModel.profileImageUri.collectAsState()
             val coroutineScope = rememberCoroutineScope()
 
+            // Pass the state and event handlers to the screen
             ProfileScreen(
                 userProfile = userProfile,
+                isDarkTheme = isDarkTheme,
+                profileImageUri = profileImageUri,
                 onSaveProfile = { updatedProfile ->
                     coroutineScope.launch {
                         stepViewModel.saveUserProfile(updatedProfile)
@@ -73,13 +77,11 @@ fun NavigationGraph(
                 },
                 onLogout = {
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(navController.graph.id) {
-                            inclusive = true
-                        }
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
                 },
-                isDarkTheme = false,
-                onThemeToggle = { }
+                onThemeToggle = { stepViewModel.toggleTheme() },
+                onSaveImage = { uri -> stepViewModel.saveProfileImage(uri) }
             )
         }
 
