@@ -19,10 +19,10 @@ import com.example.fitnesstracker.model.StepData
 @Composable
 fun WeeklyStepChart(
     weeklySteps: List<StepData>,
-    goal: Int, // The goal will now be our fixed maximum scale
+    goal: Int,
     modifier: Modifier = Modifier
 ) {
-    Log.d("ChartDebug", "WeeklyStepChart received data: $weeklySteps")
+    Log.d("ChartDebug", "WeeklyStepChart received data for ${weeklySteps.size} days: $weeklySteps")
 
     Column(
         modifier = modifier
@@ -43,14 +43,30 @@ fun WeeklyStepChart(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.Bottom
         ) {
-            // ⭐️ FIX: The maximum value for the chart is now always the goal.
-            val maxSteps = goal
+            val maxSteps = goal.coerceAtLeast(1) // Ensure maxSteps is at least 1 to avoid division by zero
 
-            // We still check if maxSteps > 0 to prevent division by zero.
-            if (maxSteps > 0 && weeklySteps.isNotEmpty()) {
-                weeklySteps.forEach { stepData ->
-                    // Calculate the bar's height relative to the fixed goal.
-                    val progress = stepData.steps.toFloat() / maxSteps.toFloat()
+            if (weeklySteps.isNotEmpty()) {
+                // Use forEachIndexed to know which bar is the last one (today).
+                weeklySteps.forEachIndexed { index, stepData ->
+
+                    // --- START OF VISUAL LOGIC FIX ---
+
+                    // 1. Determine if the current bar represents today.
+                    val isToday = index == weeklySteps.lastIndex
+
+                    // 2. Set the bar color. Today is bright purple, all other days are muted gray.
+                    val barColor = if (isToday) Color(0xFF9336E3) else Color(0xFF4A4A4A)
+
+                    // 3. Calculate bar progress.
+                    val progress = (stepData.steps.toFloat() / maxSteps.toFloat())
+
+                    // 4. Ensure a minimum height for all bars so they are always visible.
+                    //    Days with 0 steps will have a small "dummy" bar.
+                    //    Days with very few steps will also be slightly larger to be noticeable.
+                    val barHeight = progress.coerceAtLeast(0.09f)
+
+                    // --- END OF VISUAL LOGIC FIX ---
+
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -60,12 +76,9 @@ fun WeeklyStepChart(
                         Box(
                             modifier = Modifier
                                 .width(28.dp)
-                                .fillMaxHeight(progress) // Use the calculated progress
+                                .fillMaxHeight(barHeight) // Use the new height logic
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    // Bar color changes if the goal is met
-                                    if (stepData.steps >= goal) Color(0xFFC05EDA) else Color(0xFF730C88)
-                                )
+                                .background(barColor) // Use the new color logic
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
